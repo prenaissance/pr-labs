@@ -56,8 +56,8 @@ def get_page_items(url: str, max_depth: int = 10) -> List[Product]:
 def in_class():
     items = get_page_items("https://999.md/ro/list/computers-and-office-equipment/video?view_type=detail", 5)
     # write as json
-    with open("items.json", "w") as file:
-        file.write(json.dumps([asdict(item) for item in items], indent=2))
+    with open("items.json", "w", encoding="utf-8") as file:
+        file.write(json.dumps([asdict(item) for item in items], indent=2, ensure_ascii=False))
 
 if __name__ == '__main__':
     in_class()

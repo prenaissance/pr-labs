@@ -1,17 +1,10 @@
-from dataclasses import dataclass
+from product import Product
 import json
-import socket
-
 import regex
 
 from http_server import HttpServer, Request, Response, NOT_FOUND_RESPONSE
 
-@dataclass
-class Product:
-    name: str
-    author: str
-    price: int
-    description: str
+
 
 # Define socket host and port
 SERVER_HOST = '0.0.0.0'

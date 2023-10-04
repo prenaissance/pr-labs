@@ -34,7 +34,7 @@ class HttpServer:
         headers = {}
         body = ""
         for line in lines[1:]:
-            if line == "\r":
+            if line == "\r" or line == "":
                 break
             key, value = line.split(": ")
             headers[key] = value
@@ -66,12 +66,16 @@ class HttpServer:
                 client_connection, client_address = server_socket.accept()
 
                 # Get the client request
-                request = self._parse_request(
-                    client_connection.recv(1024).decode())
+                try:
+                    request = self._parse_request(
+                        client_connection.recv(1024).decode())
 
-                handler = next(
-                    (handler for handler in self._handlers if handler.path_matcher(request.path)), None)
-                final_handler = NOT_FOUND_RESPONSE if handler is None else handler.handler(request)
-                response = self._create_response(final_handler)
-                client_connection.sendall(response.encode())
-                client_connection.close()
+                    handler = next(
+                        (handler for handler in self._handlers if handler.path_matcher(request.path)), None)
+                    final_handler = NOT_FOUND_RESPONSE if handler is None else handler.handler(request)
+                    response = self._create_response(final_handler)
+                    client_connection.sendall(response.encode())
+                except Exception as e:
+                    print(f"Request from {client_address} failed:\n{str(e)}")
+                finally:
+                    client_connection.close()

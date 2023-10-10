@@ -1,6 +1,9 @@
 import json
 import socket
 import threading
+from typing import Callable, Dict
+
+from common import Message
 # Server configuration
 HOST = '127.0.0.1' # Server's IP address
 PORT = 12345 # Server's port
@@ -10,44 +13,49 @@ client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 # Connect to the server
 client_socket.connect((HOST, PORT))
 
+def close_client():
+    client_socket.close()
+    print("Disconnected from server")
+
+echo_handler = lambda payload: print(payload["message"])
+
+message_handlers: Dict[str, Callable[[dict], None]] = {
+    "acknowledge": echo_handler,
+    "notification": echo_handler,
+    "message": lambda payload: print(f"{payload['sender']}: {payload['text']}"),
+}
+
 def listen_for_messages():
     while True:
-        message = client_socket.recv(1024).decode('utf-8')
-        if not message:
-            break
-        print(f"Received: {message}")
-    client_socket.close()
-    
+        raw_message = client_socket.recv(2048).decode('utf-8')
+        try:
+            if not raw_message:
+                continue
+            message = Message.from_json(raw_message)
+            message_handlers[message.type](message.payload)
+        except Exception as e:
+            print(f"Error: {e}")
+
 # Start a thread for listening for messages
 listen_thread = threading.Thread(target=listen_for_messages)
 listen_thread.daemon = True
-listen_thread.start()
 
 def main():
-    print(f"Connected to {HOST}:{PORT}")
     name = input("Name: ")
     room_name = input("Room name: ")
-    connect_message = {
-        "type": "connect",
-        "payload": {
-            "name": name,
-            "room_name": room_name
-        }
-    }
-    client_socket.send(json.dumps(connect_message).encode("utf-8"))
+    connect_message = Message("connect", {"name": name, "room": room_name})
+    client_socket.send(connect_message.to_json().encode("utf-8"))
+    listen_thread.start()
     get_input()
 
 def get_input():
-    def close_client():
-        client_socket.close()
-        print("Disconnected from server")
-
     message = input()
     if message.lower() == 'exit':
         close_client()
         return
     
-    client_socket.send(message.encode('utf-8'))
+    send_message = Message("message", {"text": message})
+    client_socket.send(send_message.to_json().encode('utf-8'))
     get_input()
 
 if __name__ == "__main__":

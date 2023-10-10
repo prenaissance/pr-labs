@@ -1,11 +1,14 @@
 from dataclasses import dataclass
+from os import makedirs, path
 import socket
 import threading
 from typing import Callable, Dict, List
+import base64
 
 from common import Message
 HOST = '127.0.0.1'
 PORT = 12345
+MEDIA_PATH = ".\server_media"
 
 
 @dataclass
@@ -22,14 +25,51 @@ server_socket.listen()
 
 rooms: Dict[str, List[Client]] = {}
 
-running = True
 
-ctrlc_thread = threading.Thread(target=lambda: input() == "exit")
+def handle_upload(client: Client, payload: dict):
+    try:
+        file_name: str = payload["file_name"]
+        file_path = path.join(MEDIA_PATH, file_name)
+        if not path.exists(path.dirname(file_path)):
+            makedirs(path.dirname(file_path))
+        base64_data: str = payload["data"]
+        data = base64.b64decode(base64_data)
+        with open(file_path, "wb") as file:
+            file.write(data)
+        send_response(client, Message("acknowledge", {
+                      "message": "File uploaded successfully"}))
+        broadcast(Message("notification", {
+            "message": f"{client.name} uploaded {file_name}"}), client.room, client)
+    except Exception as e:
+        send_response(client, Message(
+            "notification", {"message": f"Error: {e}"}))
+
+
+def handle_download(client: Client, payload: dict):
+    try:
+        file_name: str = payload["file_name"]
+        file_path = path.join(MEDIA_PATH, file_name)
+        if (not path.exists(file_path)):
+            send_response(client, Message("notification", {
+                          "message": f"File {file_name} does not exist"}))
+            return
+        with open(file_path, "rb") as file:
+            data = file.read()
+        base64_data: str = base64.b64encode(data).decode("utf-8")
+        send_response(client, Message(
+            "download", {"file_name": file_name, "data": base64_data}))
+    except Exception as e:
+        send_response(client, Message(
+            "notification", {"message": f"Error: {e}"}))
+
 
 message_handlers: Dict[str, Callable[[Client, dict], None]] = {
     "message": lambda client, payload: broadcast(
         Message("message", {"sender": client.name, "text": payload["text"]}), client.room, client),
+    "upload": handle_upload,
+    "download": handle_download,
 }
+
 
 def handle_message(client: Client, message: Message):
     message_type = message.type
@@ -40,10 +80,12 @@ def handle_message(client: Client, message: Message):
         return
     handler(client, message.payload)
 
+
 def remove_client(client: Client, client_address: str, room_name: str):
     rooms[room_name].remove(client)
     client.socket.close()
     print(f"Client {client_address} disconnected")
+
 
 def send_response(client: Client, message: Message):
     print(f"Sending response to {client.name}")
@@ -104,16 +146,17 @@ def register_client(client: Client, client_address: str):
 def handle_client(client: Client, client_address):
     while True:
         try:
-            raw_message = client.socket.recv(1024).decode('utf-8')
-            print(f"Received message from {client.name}:")
-            print(raw_message)
-            if not raw_message:
-                continue
+            raw_message = client.socket.recv(40960).decode('utf-8')
+            if raw_message.startswith('{"type": "upload"'):
+                while not raw_message.endswith('}'):
+                    raw_message += client.socket.recv(40960).decode('utf-8')
 
             received_message = Message.from_json(raw_message)
+            print(f"Received message from {client.name}:")
+            print(raw_message)
             handle_message(client, received_message)
-        except Exception as e:
-            print(f"Error from client {client.name}: {e}")
+        except Exception:
+            print(f"Error from client {client.name}, trying again...")
 
 
 if __name__ == "__main__":

@@ -1,10 +1,10 @@
+using LAB6.Auth;
 using LAB6.Dtos;
 using LAB6.Models;
 using LAB6.Persistance;
 using LAB6.Validation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.OpenApi.Models;
 
 namespace LAB6.Routes;
 
@@ -14,30 +14,23 @@ public static class ScooterRoutes
     public static IEndpointRouteBuilder AddElectroScooterEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup(BASE_PATH);
-        group.MapPost("", CreateElectroScooter).AddEndpointFilter<ValidationFilter<CreateElectroScooterDto>>();
-        group.MapGet("", GetElectroScooters);
-        group.MapGet("{id}", GetElectroScooter);
-        group.MapPut("{id}", UpdateElectroScooter).AddEndpointFilter<ValidationFilter<CreateElectroScooterDto>>();
-        group.MapDelete("{id}", DeleteElectroScooter).WithOpenApi(
-            options =>
-            {
-                options.Security.Add(new OpenApiSecurityRequirement
-                {
-                    {
-                        new OpenApiSecurityScheme
-                        {
-                            Reference = new OpenApiReference
-                            {
-                                Type = ReferenceType.SecurityScheme,
-                                Id = "basic"
-                            }
-                        },
-                        Array.Empty<string>()
-                    }
-                });
-                return options;
-            }
-        );
+        group.MapPost("", CreateElectroScooter)
+            .AddEndpointFilter<ValidationFilter<CreateElectroScooterDto>>()
+            .WithSummary("Creates a new electro scooter")
+            .WithOpenApi();
+        group.MapGet("", GetElectroScooters)
+            .WithSummary("Returns all electro scooters")
+            .WithOpenApi();
+        group.MapGet("{id}", GetElectroScooter)
+            .WithSummary("Returns an electro scooter by id")
+            .WithOpenApi();
+        group.MapPut("{id}", UpdateElectroScooter)
+            .AddEndpointFilter<ValidationFilter<CreateElectroScooterDto>>()
+            .WithSummary("Updates an electro scooter by id")
+            .WithOpenApi();
+        group.MapDelete("{id}", DeleteElectroScooter)
+            .WithSummary("Deletes an electro scooter by id")
+            .WithBasicSecurity();
 
         return app;
     }

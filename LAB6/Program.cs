@@ -21,20 +21,6 @@ builder.Services.AddSwaggerGen(options =>
         In = ParameterLocation.Header,
         Description = "Basic Authorization header."
     });
-    options.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "basic"
-                }
-            },
-            Array.Empty<string>()
-        }
-    });
 });
 builder.Services.AddDbContext<Db>(options => options.UseSqlite("Data Source=lab6.db"));
 builder.Services.AddValidatorsFromAssemblyContaining(typeof(Program), ServiceLifetime.Singleton);

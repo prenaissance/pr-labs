@@ -22,7 +22,7 @@ builder.Services.AddSwaggerGen(options =>
         Description = "Basic Authorization header."
     });
 });
-builder.Services.AddDbContext<Db>(options => options.UseSqlite("Data Source=lab6.db"));
+builder.Services.AddDbContext<Db>(options => options.UseNpgsql("Host=localhost;Port=5432;Database=electric-scooters;Username=postgres;Password=postgres;"));
 builder.Services.AddValidatorsFromAssemblyContaining(typeof(Program), ServiceLifetime.Singleton);
 builder.Services.AddAuthorization();
 builder.Services.AddAuthentication("BasicAuthentication")

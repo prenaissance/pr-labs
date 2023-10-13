@@ -8,7 +8,7 @@ public class ValidationFilter<T> : IEndpointFilter
 {
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
-        T? argToValidate = context.GetArgument<T>(0);
+        T? argToValidate = context.Arguments.OfType<T>().FirstOrDefault();
         IValidator<T>? validator = context.HttpContext.RequestServices.GetService<IValidator<T>>();
 
         if (validator is not null)

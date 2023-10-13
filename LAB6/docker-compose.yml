@@ -1,0 +1,17 @@
+version: "3"
+
+volumes:
+  pgdata:
+    driver: local
+
+services:
+  postgres:
+    image: postgres:12
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=electric-scooters
+    ports:
+      - 5432:5432

@@ -58,7 +58,11 @@ def get_user_info(page: bs) -> UserInfo:
     container = page.select_one(".adPage__aside__stats__owner > dd")
     anchor = container.select_one("a")
     name = anchor.text.strip()
-    join_year = int(container.select_one("span").text.split(" ")[-1].strip())
+    join_year = 2023
+    try:
+        join_year = int(container.select_one("span").text.split(" ")[-1].strip())
+    except:
+        pass
     profile_url = urljoin(BASE_URL, anchor.get("href"))
     
     profile_page = bs(requests.get(profile_url).text, "html.parser")

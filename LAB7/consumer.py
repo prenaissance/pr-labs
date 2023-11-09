@@ -5,7 +5,7 @@ import product
 import pymongo
 import threading
 
-client = pymongo.MongoClient("mongodb://localhost:27017/")
+client = pymongo.MongoClient("mongodb://localhost:27018/")
 db = client["999_products"]
 
 def create_consumer(number: int):
@@ -19,7 +19,7 @@ def create_consumer(number: int):
         print(f"Consumer {number} processed {body}")
 
     channel.basic_qos(prefetch_count=1)
-    channel.basic_consume(queue="999_urls", on_message_callback=callback)
+    channel.basic_consume(queue="999_urls", on_message_callback=callback, auto_ack=True)
     channel.start_consuming()
 
 def main():
@@ -32,7 +32,9 @@ def main():
     # spawn separate threads
     threads = []
     for i in range(consumer_count):
-        create_consumer(i)
+        thread = threading.Thread(target=create_consumer, args=(i + 1,))
+        thread.start()
+        threads.append(thread)
 
     # wait for threads to finish
     for thread in threads:

@@ -1,0 +1,20 @@
+version: "3"
+volumes:
+  mongo_data:
+  rabbitmq_data:
+
+services:
+  mongo:
+    image: mongo
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27018:27017"
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"

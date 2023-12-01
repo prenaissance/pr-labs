@@ -14,9 +14,12 @@ def create_consumer(number: int):
     channel.queue_declare(queue="999_urls", durable=True, auto_delete=False)
     
     def callback(ch, method, properties, body):
-        product_dict = product.get_product_dict(body)
-        db["products"].insert_one(product_dict)
-        print(f"Consumer {number} processed {body}")
+        try:
+            product_dict = product.get_product_dict(body)
+            db["products"].insert_one(product_dict)
+            print(f"Consumer {number} processed {body}")
+        except:
+            print(f"Consumer {number} failed processing {body}")
 
     channel.basic_qos(prefetch_count=1)
     channel.basic_consume(queue="999_urls", on_message_callback=callback, auto_ack=True)

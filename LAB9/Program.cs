@@ -5,15 +5,13 @@ using LAB9.Configuration;
 using LAB9.Contracts;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.FileProviders;
 
 const string fromAddress = "no-reply@inventory-hub.space";
 const string ftpFolder = "pneumonoultramicroscopicsilicovolcanoconiosis";
 const string ftpServerUrl = "138.68.98.108";
 
-var builder = WebApplication.CreateBuilder(new WebApplicationOptions
-{
-    WebRootPath = "/public"
-});
+var builder = WebApplication.CreateBuilder();
 
 var myConfiguration = builder.Configuration.Get<MyConfiguration>()!;
 
@@ -30,7 +28,11 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
-app.UseStaticFiles("/public");
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "public")),
+    RequestPath = ""
+});
 app.UseAntiforgery();
 
 // Configure the HTTP request pipeline.
@@ -59,16 +61,14 @@ app.MapPost("/api/send-email", async (
 {
     var fileUrls = new List<string>();
     // upload files to FTP server
-    var tasks = files.Select(file => Task.Run(() =>
-        {
-            using var stream = file.OpenReadStream();
-            string filePath = Path.Combine(ftpFolder, $"{DateTime.Now.ToShortTimeString()}-{file.FileName}");
-            string fileUrl = $"ftp://{ftpServerUrl}/{filePath}";
-            fileUrls.Add(fileUrl);
-            return ftpClient.UploadStream(stream, filePath);
-        }));
-    var ftpResults = await Task.WhenAll(tasks);
-
+    foreach (var file in files)
+    {
+        using var stream = file.OpenReadStream();
+        string filePath = Path.Combine(ftpFolder, $"{DateTime.Now.ToShortTimeString()}-{file.FileName}");
+        string fileUrl = $"ftp://{ftpServerUrl}/{filePath}";
+        fileUrls.Add(fileUrl);
+        ftpClient.UploadStream(stream, filePath);
+    }
     // send email
     try
     {
@@ -101,6 +101,6 @@ app.MapPost("/api/send-email", async (
     {
         return Results.Problem(e.Message);
     }
-}).WithMetadata(new IgnoreAntiforgeryTokenAttribute());
+});
 
 app.Run();
